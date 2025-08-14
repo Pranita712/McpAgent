@@ -390,7 +390,21 @@ async function createServer() {
 async function main() {
   const app = express();
   app.use(express.json());
-
+  app.use("/mcp", (req, res, next) => {
+    const acceptHeader = req.headers.accept || "";
+    if (
+      !acceptHeader.includes("application/json") &&
+      !acceptHeader.includes("text/event-stream")
+    ) {
+      return res
+        .status(406) // 406 Not Acceptable
+        .json({
+          error:
+            "Client must accept 'application/json' and 'text/event-stream'",
+        });
+    }
+    next();
+  });
   // Create your MCP server instance
   const server = await createServer();
 
