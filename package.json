@@ -1,0 +1,30 @@
+{
+  "name": "smockit-mcp-server",
+  "version": "1.0.0",
+  "description": "A Model Context Protocol server",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start:server": "node build/index.js",
+    "start:client": "node build/test-client.js",
+    "dev": "ts-node src/test-client.ts"
+  },
+  "bin": {
+    "smockit-mcp-server": "./build/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.0",
+    "express": "^5.1.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.2.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
