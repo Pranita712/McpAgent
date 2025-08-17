@@ -403,6 +403,7 @@ async function main() {
             "Client must accept 'application/json' and 'text/event-stream'",
         });
     }
+    console.log("Received Accept header:", req.headers.accept);
     next();
   });
   // Create your MCP server instance
