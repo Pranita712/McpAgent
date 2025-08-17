@@ -393,7 +393,7 @@ async function main() {
   app.use("/mcp", (req, res, next) => {
     const acceptHeader = req.headers.accept || "";
     if (
-      !acceptHeader.includes("application/json") &&
+      !acceptHeader.includes("application/json") ||
       !acceptHeader.includes("text/event-stream")
     ) {
       return res
