@@ -43,14 +43,15 @@
 
 // test-client.ts
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHttpClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { URL } from "url";
+
 async function main() {
   // Initialize the StdioClientTransport, which will spawn your server process.
   // Ensure 'build/index.js' is the correct path to your compiled server code.
-  const transport = new StreamableHttpClientTransport({
-    url: "https://mcpagent.onrender.com/mcp",
-  });
-
+  const transport = new StreamableHTTPClientTransport(
+    new URL("https://mcpagent.onrender.com/mcp")
+  );
   // Initialize the MCP Client.
   const client = new Client({
     name: "my-mcp-test-client",
