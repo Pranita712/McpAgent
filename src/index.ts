@@ -4,6 +4,7 @@ import express, { Request, Response } from "express";
 import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+
 import {
   CreateTemplateSchema,
   CreateTemplateArgs,
@@ -393,8 +394,10 @@ async function main() {
   app.use("/mcp", (req, res, next) => {
     const acceptHeader = req.headers.accept || "";
     if (
-      !acceptHeader.includes("application/json") ||
-      !acceptHeader.includes("text/event-stream")
+      !(
+        acceptHeader.includes("application/json") ||
+        acceptHeader.includes("text/event-stream")
+      )
     ) {
       return res
         .status(406) // 406 Not Acceptable
