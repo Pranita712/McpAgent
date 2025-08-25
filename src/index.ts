@@ -390,7 +390,7 @@ async function createServer() {
 
 async function main() {
   const app = express();
-  app.use(express.json());
+  //app.use(express.json());
   app.use("/mcp", (req, res, next) => {
     const acceptHeader = req.headers.accept || "";
     if (
