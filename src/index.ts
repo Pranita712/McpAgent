@@ -21,6 +21,7 @@ import {
   UpsertTemplateSchema,
   UpsertTemplateArgs,
 } from "./schemas/createTemplateSchema.js";
+
 import { exec } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs/promises";
@@ -38,17 +39,10 @@ function getErrorMessage(error: unknown): string {
 async function executeSmockitCommand(command: string): Promise<string> {
   try {
     const { stdout, stderr } = await execAsync(command);
-    if (stderr) {
-      console.error(`Command stderr: ${stderr}`);
-    }
+    if (stderr) console.error(`Command stderr: ${stderr}`);
     return stdout.trim();
   } catch (error: any) {
-    console.error(`Command execution failed for: ${command}`);
-    console.error(`Error name: ${error.name}`);
-    console.error(`Error message: ${error.message}`);
-    if (error.stdout) console.error(`Error stdout: ${error.stdout}`);
-    if (error.stderr) console.error(`Error stderr: ${error.stderr}`);
-    console.error(`Exit code: ${error.code}`);
+    console.error(`Command execution failed: ${command}`);
     throw new Error(
       `Failed to execute Smock-it command: ${getErrorMessage(error)}`
     );
@@ -62,14 +56,8 @@ async function readTemplateFile(templateName: string): Promise<any> {
     "templates",
     `${templateName}.json`
   );
-  try {
-    const content = await fs.readFile(templatePath, "utf-8");
-    return JSON.parse(content);
-  } catch (error: unknown) {
-    throw new Error(
-      `Failed to read template ${templateName}: ${getErrorMessage(error)}`
-    );
-  }
+  const content = await fs.readFile(templatePath, "utf-8");
+  return JSON.parse(content);
 }
 
 async function writeTemplateFile(
@@ -77,20 +65,14 @@ async function writeTemplateFile(
   template: any
 ): Promise<void> {
   const templateDir = path.join(process.cwd(), "data_gen", "templates");
-  try {
-    await fs.mkdir(templateDir, { recursive: true });
-    const templatePath = path.join(templateDir, `${templateName}.json`);
-    await fs.writeFile(templatePath, JSON.stringify(template, null, 2));
-  } catch (error: unknown) {
-    throw new Error(
-      `Failed to write template ${templateName}: ${getErrorMessage(error)}`
-    );
-  }
+  await fs.mkdir(templateDir, { recursive: true });
+  const templatePath = path.join(templateDir, `${templateName}.json`);
+  await fs.writeFile(templatePath, JSON.stringify(template, null, 2));
 }
 
 // ------------------ Create MCP server ------------------
 
-async function createServer() {
+function createServer() {
   const server = new McpServer({
     name: "my-mcp-server",
     version: "1.0.0",
@@ -133,7 +115,7 @@ async function createServer() {
           content: [
             {
               type: "text",
-              text: `Template '${templateName}' created successfully for ${sObject} with ${recordCount} records.`,
+              text: `Template '${templateName}' created successfully.`,
             },
           ],
         };
@@ -388,56 +370,50 @@ async function createServer() {
 
 // ------------------ Start HTTP MCP server ------------------
 
-async function main() {
-  const app = express();
-  //app.use(express.json());
-  app.use("/mcp", (req, res, next) => {
-    const acceptHeader = req.headers.accept || "";
-    if (
-      !(
-        acceptHeader.includes("application/json") ||
-        acceptHeader.includes("text/event-stream")
-      )
-    ) {
-      return res
-        .status(406) // 406 Not Acceptable
-        .json({
-          error:
-            "Client must accept 'application/json' and 'text/event-stream'",
-        });
-    }
-    console.log("Received Accept header:", req.headers.accept);
-    next();
-  });
-  // Create your MCP server instance
-  const server = await createServer();
+//async function main() {
+const app = express();
 
-  // Let the transport handle session IDs automatically
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(),
-  });
-
-  // Connect the transport to your MCP server
-  await server.connect(transport);
-
-  // POST endpoint for handling MCP requests
-  app.all("/mcp", async (req: Request, res: Response) => {
-    await transport.handleRequest(req, res);
-  });
-
+// Optional: parse JSON if needed
+app.use(express.json());
+// Health check
+app.get("/health", (req: Request, res: Response) => {
+  res.status(200).json({ status: "ok" });
+});
+// Wire transport handler to Express route
+app.post("/mcp", async (req: Request, res: Response) => {
   try {
-    const port = process.env.PORT || 3000;
-    app.listen(port, () => {
-      console.log(
-        `MCP Streamable HTTP server listening at http://localhost:${port}/mcp`
-      );
+    // Create MCP server instance
+    const server = createServer();
+    // Create transport
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
     });
-  } catch (err) {
-    console.error("Error starting server:", err);
-  }
-}
+    res.on("close", () => {
+      console.log("Response closed");
+      transport.close();
+      server.close();
+    });
 
-main().catch((error) => {
-  console.error("Fatal error in main():", getErrorMessage(error));
-  process.exit(1);
+    // Connect MCP server to transport
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (error) {
+    console.error("");
+    if (!res.headersSent) {
+      res.status(500).json({
+        jsonrpc: "2.0",
+        error: {
+          code: "-32603",
+          message: "Internal server error",
+        },
+        id: "null",
+      });
+    }
+  }
+});
+
+//Start the server
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`MCP Streamable HTTP server listening at ${PORT}`);
 });
