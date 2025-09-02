@@ -105,7 +105,7 @@ function createServer() {
                 count: recordCount,
                 fieldsToExclude: fieldsToExclude || [],
                 fieldsToConsider: fieldsToConsider || {},
-                pickLeftFields: true,
+                pickLeftFields: false,
               },
             },
           ],
